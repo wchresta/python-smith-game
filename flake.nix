@@ -9,9 +9,7 @@
           python = "python310";
         };
 
-        python-smith-game = mach-nix-lib.mkPython {
-          requirements = builtins.readFile ./requirements.txt;
-        };
+        python-smith-game = mach-nix-lib.buildPythonPackage ./.;
       in {
         packages = { inherit python-smith-game; };
         defaultPackage = python-smith-game;
