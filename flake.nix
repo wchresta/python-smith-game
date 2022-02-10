@@ -17,8 +17,8 @@
         devShell = pkgs.mkShell {
           inputsFrom = builtins.attrValues self.packages.${system};
           buildInputs = with pkgs; [
-            black
             mypy
+            black
           ];
         };
       });
