@@ -3,29 +3,25 @@ from typing import Iterable
 import logging
 import collections
 
-from smithg.agents import agents, commands
-from smithg.datatypes import Item, Amount, BuyOffer, SellOffer
-from smithg.engine import market, events
+from smithg.agents import AgentFunc, Environment
+from smithg.datatypes import Item, Amount, BuyOffer, SellOffer, events, commands
+from smithg.engine import market
 
 _logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(slots=True, frozen=True)
 class AgentContainer:
     @dataclass
     class State:
         command_fuel: int = 0
-        last_command_fuel: int = 0
-        last_balance: Amount = 0
         balance: Amount = 0
-        last_items: dict[Item, Amount] = field(
-            default_factory=lambda: collections.defaultdict(int)
-        )
         items: dict[Item, Amount] = field(
             default_factory=lambda: collections.defaultdict(int)
         )
 
-    agent_func: agents.AgentFunc
+    agent_func: AgentFunc
+    agent_name: str
     state: "AgentContainer.State" = field(default_factory=State)
     command_fuel_generation: int = 25  # Fuel generation every round
     events_queue: list[events.Event] = field(default_factory=list)
@@ -36,50 +32,90 @@ class AgentContainer:
 class World:
     known_items: list[Item]
     market: market.Market
-    player_agent_containers: list[AgentContainer]
+    player_agent_containers: list[AgentContainer] = field(default_factory=list)
+    default_work_to_money: int = 10
 
+    def register_agent(self, agent_func: AgentFunc, name: str = None) -> None:
+        if not name:
+            name = agent_func.__name__
 
-def setup_world(player_agents: Iterable[agents.AgentFunc]):
-    known_items = [
-        "iron_ore",
-        "iron_ingot",
-        "iron_sword",
-        "iron_sheets",
-        "iron_hammer",
-    ]
-    world = World(
-        known_items=known_items,
-        market=market.Market(trades=market.gen_random_trade_offers(known_items)),
-        player_agent_containers=list(
+        self.player_agent_containers.append(
             AgentContainer(
-                a, state=AgentContainer.State(command_fuel=100), work_to_money=10
+                agent_func=agent_func,
+                agent_name=name,
+                state=AgentContainer.State(command_fuel=100),
+                work_to_money=self.default_work_to_money,
             )
-            for a in player_agents
-        ),
-    )
-    return world
+        )
+
+    # Simulate a run with the given number of steps
+    def simulate(self, steps=10) -> list[AgentContainer]:
+        for s in range(steps):
+            self.step(s)
+
+        return self.player_agent_containers
+
+    def step(self, s: int) -> None:
+        self.market.trades = market.gen_random_trade_offers(self.known_items)
+
+        for cont in self.player_agent_containers:
+            execute_agent(cont, self)
 
 
-# Simulate a run with the given number of steps
-def simulate(
-    player_agents: Iterable[agents.AgentFunc] = None, steps=10
-) -> list[AgentContainer]:
+def make_world(
+    known_items: Iterable[str], player_agents: Iterable[tuple[AgentFunc, str]] = None
+) -> World:
     if not player_agents:
         player_agents = []
 
-    world = setup_world(player_agents)
+    world = World(
+        known_items=list(known_items),
+        market=market.Market(trades=market.gen_random_trade_offers(known_items)),
+    )
 
-    for s in range(steps):
-        step(world, s)
+    for agent, name in player_agents:
+        world.register_agent(agent, name)
 
-    return world.player_agent_containers
-
-
-class InvalidAgentState(RuntimeError):
-    pass
+    return world
 
 
-def execute_command(world: World, cont: AgentContainer, cmd: commands.Command) -> None:
+def execute_agent(cont: AgentContainer, world: World) -> None:
+    # Create some fuel for new commands
+    cont.state.command_fuel += cont.command_fuel_generation
+
+    # Tell the agent about its environment.
+    env = Environment(
+        known_items=frozenset(world.known_items),
+        buy_offers=world.market.trades.buy_offer_set(),
+        sell_offers=world.market.trades.sell_offer_set(),
+        balance=cont.state.balance,
+        command_fuel=cont.state.command_fuel,
+        inventory=collections.defaultdict(
+            int, {item: amount for item, amount in cont.state.items.items()}
+        ),
+    )
+
+    _logger.debug("Calling agent with events: %s", cont.events_queue)
+    queued_commands = cont.agent_func(env, cont.events_queue)
+    _logger.debug("Agent finished and is executing commands %s", queued_commands)
+
+    if not isinstance(queued_commands, list):
+        raise InvalidAgentState(
+            f"Returned command list is not a list. Found {type(queued_commands)}"
+        )
+    cont.events_queue.clear()
+
+    for cmd in queued_commands:
+        if not isinstance(cmd, commands.Command):
+            raise InvalidAgentState(
+                f"Returned command is not a subclass of Command. Found {type(cmd)}"
+            )
+
+        # TODO: Make sure the command is of a subclass within commands and not something fishy the agent gave us
+        execute_command(cont, world, cmd)
+
+
+def execute_command(cont: AgentContainer, world: World, cmd: commands.Command) -> None:
     cont.state.command_fuel -= cmd.cost
     if cont.state.command_fuel < 0:
         raise InvalidAgentState(f"Agent ran out of fuel with command {cmd}")
@@ -141,65 +177,5 @@ def execute_command(world: World, cont: AgentContainer, cmd: commands.Command) -
         return
 
 
-def execute_agent(world: World, cont: AgentContainer) -> None:
-    env = agents.Environment(
-        known_items=frozenset(world.known_items),
-        buy_offers=world.market.trades.buy_offer_set(),
-        sell_offers=world.market.trades.sell_offer_set(),
-    )
-
-    # Create some fuel for new commands
-    cont.state.command_fuel += cont.command_fuel_generation
-
-    sync_events = create_sync_events(cont)
-
-    # We always want to make the command cost receipt come first
-    cont.events_queue = sync_events + cont.events_queue
-
-    _logger.debug("Calling agent with events: %s", cont.events_queue)
-    queued_commands = cont.agent_func(env, cont.events_queue)
-    _logger.debug("Agent finished and is executing commands %s", queued_commands)
-
-    if not isinstance(queued_commands, list):
-        raise InvalidAgentState(
-            f"Returned command list is not a list. Found {type(queued_commands)}"
-        )
-    cont.events_queue = []
-
-    for cmd in queued_commands:
-        if not isinstance(cmd, commands.Command):
-            raise InvalidAgentState(
-                f"Returned command is not a subclass of Command. Found {type(cmd)}"
-            )
-
-        # TODO: Make sure the command is of a subclass within commands and not something fishy the agent gave us
-        execute_command(world, cont, cmd)
-
-
-def create_sync_events(cont: AgentContainer) -> list[events.Event]:
-    sync_events: list[events.Event] = []
-
-    diff_command_fuel = cont.state.command_fuel - cont.state.last_command_fuel
-    cont.state.last_command_fuel = cont.state.command_fuel
-    if diff_command_fuel != 0:
-        sync_events.append(events.CommandCostReceipt(diff_command_fuel))
-
-    diff_balance = cont.state.balance - cont.state.last_balance
-    cont.state.last_balance = cont.state.balance
-    if diff_balance != 0:
-        sync_events.append(events.MoneyTransfer(diff_balance))
-
-    for item, amount in cont.state.items.items():
-        diff_amount = amount - cont.state.last_items[item]
-        cont.state.last_items[item] = amount
-        if diff_amount != 0:
-            sync_events.append(events.ItemTransfer(item, diff_amount))
-
-    return sync_events
-
-
-def step(world: World, s: int) -> None:
-    world.market.trades = market.gen_random_trade_offers(world.known_items)
-
-    for cont in world.player_agent_containers:
-        execute_agent(world, cont)
+class InvalidAgentState(RuntimeError):
+    pass

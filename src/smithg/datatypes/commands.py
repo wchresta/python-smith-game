@@ -6,7 +6,7 @@ Intead of executing commands directly, these interfaces are used to communicate 
 from dataclasses import dataclass
 import abc
 
-from smithg.datatypes import Amount, Item, Price, CommandCost
+from smithg.datatypes.datatypes import Amount, Item, Price, CommandCost
 
 
 class Command(abc.ABC):

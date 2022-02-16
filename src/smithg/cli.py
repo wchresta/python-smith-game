@@ -1,20 +1,35 @@
+import importlib
+import pathlib
+
 import smithg.engine
-import smithg.agents.agents
+import smithg.agents
 
 import logging
+
+_logger = logging.getLogger(__name__)
+
+
+def discover_agents(agents_package: str) -> None:
+    for agentfile in pathlib.Path(agents_package).glob("*.py"):
+        module_name = f"{agents_package}.{agentfile.stem}"
+        _logger.debug("Importing %s", module_name)
+        importlib.import_module(module_name, package=None)
 
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
-    logging.info("Running market...")
 
-    agents = [smithg.agents.agents.RandomAgent() for _ in range(30)]
+    agents_path = "player_agents"
+    _logger.info("Loading agents from %s", agents_path)
+    discover_agents(agents_path)
+    _logger.info("Loading done.")
 
-    agent_container = smithg.engine.simulate(player_agents=agents)
+    _logger.info("Running market...")
+    agent_container = smithg.engine.simulate()
 
-    logging.info("Simulation finished. Here are the results")
-    for cont in agent_container:
-        logging.info("Agent %s, balance: %i", id(cont), cont.state.balance)
+    _logger.info("Simulation finished. Here are the results")
+    for cont in sorted(agent_container, key=lambda x: x.state.balance, reverse=True):
+        _logger.info("Agent %s, balance: %i", cont.agent_name, cont.state.balance)
 
 
 if __name__ == "__main__":

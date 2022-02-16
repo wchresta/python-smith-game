@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Optional, Iterable
 from dataclasses import dataclass
 
 import collections
@@ -44,8 +44,8 @@ def gen_random_trade_offer(item: Item) -> TradeOffer:
     )
 
 
-def gen_random_trade_offers(items: list[Item]) -> Trades:
-    items = items[:]
+def gen_random_trade_offers(items: Iterable[Item]) -> Trades:
+    items = list(items)[:]
     random.shuffle(items)
     mid_point = len(items) // 2
     buy_items, sell_items = items[:mid_point], items[mid_point:]
