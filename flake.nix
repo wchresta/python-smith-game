@@ -19,6 +19,8 @@
           buildInputs = with pkgs; [
             mypy
             black
+            python310Packages.pytest
+            python310Packages.pytestcov
           ];
         };
       });

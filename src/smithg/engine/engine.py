@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import Iterable, Callable
 import logging
 import collections
 
 from smithg.agents import AgentFunc, Environment
 from smithg.datatypes import Item, Amount, BuyOffer, SellOffer, events, commands
-from smithg.engine import market
+from smithg.engine import market as engine_market
 
 _logger = logging.getLogger(__name__)
 
@@ -23,17 +23,24 @@ class AgentContainer:
     agent_func: AgentFunc
     agent_name: str
     state: "AgentContainer.State" = field(default_factory=State)
-    command_fuel_generation: int = 25  # Fuel generation every round
     events_queue: list[events.Event] = field(default_factory=list)
+
+    balance_increase: Amount = 0
+    command_fuel_increase: Amount = 25  # Fuel generation every round
     work_to_money: int = 1
 
 
 @dataclass
 class World:
     known_items: list[Item]
-    market: market.Market
+    market: engine_market.Market = field(default_factory=engine_market.Market)
     player_agent_containers: list[AgentContainer] = field(default_factory=list)
-    default_work_to_money: int = 10
+
+    work_to_money: int = 10
+    balance_init: Amount = 100
+    balance_increase: Amount = 0
+    command_fuel_init: Amount = 100
+    command_fuel_increase: Amount = 25
 
     def register_agent(self, agent_func: AgentFunc, name: str = None) -> None:
         if not name:
@@ -43,8 +50,12 @@ class World:
             AgentContainer(
                 agent_func=agent_func,
                 agent_name=name,
-                state=AgentContainer.State(command_fuel=100),
-                work_to_money=self.default_work_to_money,
+                state=AgentContainer.State(
+                    command_fuel=self.command_fuel_init, balance=self.balance_init
+                ),
+                command_fuel_increase=self.command_fuel_increase,
+                balance_increase=self.balance_increase,
+                work_to_money=self.work_to_money,
             )
         )
 
@@ -55,11 +66,28 @@ class World:
 
         return self.player_agent_containers
 
+    def process_step(self) -> None:
+        self.market.trades = engine_market.gen_random_trade_offers(self.known_items)
+
     def step(self, s: int) -> None:
-        self.market.trades = market.gen_random_trade_offers(self.known_items)
+        self.process_step()
 
         for cont in self.player_agent_containers:
             execute_agent(cont, self)
+
+    def register_agent_func(self, name: str) -> Callable[[AgentFunc], AgentFunc]:
+        def registrar(func: AgentFunc) -> AgentFunc:
+            _logger.debug("Loading agent %s - %s", name, func)
+            self.register_agent(func, name)
+            return func
+
+        return registrar
+
+    def register_agent_class(self, cls):
+        _logger.debug("Loading agent class %s", cls.__name__)
+        agent = cls()
+        self.register_agent(agent, cls.__name__)
+        return cls
 
 
 def make_world(
@@ -70,7 +98,9 @@ def make_world(
 
     world = World(
         known_items=list(known_items),
-        market=market.Market(trades=market.gen_random_trade_offers(known_items)),
+        market=engine_market.Market(
+            trades=engine_market.gen_random_trade_offers(known_items)
+        ),
     )
 
     for agent, name in player_agents:
@@ -81,7 +111,8 @@ def make_world(
 
 def execute_agent(cont: AgentContainer, world: World) -> None:
     # Create some fuel for new commands
-    cont.state.command_fuel += cont.command_fuel_generation
+    cont.state.command_fuel += cont.command_fuel_increase
+    cont.state.balance += cont.balance_increase
 
     # Tell the agent about its environment.
     env = Environment(

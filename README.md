@@ -36,6 +36,20 @@ The environment contains information about the environment (duh!) and the agent
 itself (like balance and inventory), and the events contain events like
 receipts for successful item sells and buys.
 
+Executing commands costs command fuel. The current available fuel can be seen
+in `env.command_fuel`. The cost of a command can be seen in its command class
+as `Command.cost`.
+
+## World
+
+The world is currently very minimalistic. It contains a few known items
+which can be sold or bought (see the `Environment` docstring for details).
+
+Commands the agent can perform are:
+
+* BuyItem: Buy the given item.
+* SellItem: Sell the given item.
+* Work: Convert the given amount of command fuel to money.
 
 ## LICENSE
 **python-smith-game** is licensed under the OSI approved

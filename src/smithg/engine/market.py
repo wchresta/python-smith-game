@@ -1,5 +1,5 @@
 from typing import Optional, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import collections
 import random
@@ -9,8 +9,8 @@ from smithg.datatypes import Item, Amount, Price, BuyOffer, SellOffer, TradeOffe
 
 @dataclass
 class Trades:
-    buys: dict[Item, BuyOffer]
-    sells: dict[Item, SellOffer]
+    buys: dict[Item, BuyOffer] = field(default_factory=dict)
+    sells: dict[Item, SellOffer] = field(default_factory=dict)
 
     def find_buy(self, item: Item) -> Optional[BuyOffer]:
         try:
@@ -33,7 +33,7 @@ class Trades:
 
 @dataclass
 class Market:
-    trades: Trades
+    trades: Trades = field(default_factory=Trades)
 
 
 def gen_random_trade_offer(item: Item) -> TradeOffer:

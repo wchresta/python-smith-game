@@ -1,3 +1,10 @@
+"""
+This file implements a simple agent using the class model. You can write an agent yourself
+by copying this file and change the implementations of the process and/or process_event
+methods.
+Make sure you keep the @smithg.register_agent_class decorator to teach smithg about your
+agent class.
+"""
 from dataclasses import dataclass, field
 import random
 import logging
@@ -49,9 +56,3 @@ class RandomAgent(Agent):
             possible_commands = [commands.Work(self.rand.randint(1, env.command_fuel))]
 
         self.safe_queue_command(env, self.rand.choice(possible_commands))
-
-
-# Or you can also register your own instances, or many of them
-for i in range(20):
-    agent = RandomAgent()
-    smithg.register_agent(f"random_agent_{i}")(agent)

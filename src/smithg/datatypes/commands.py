@@ -40,6 +40,7 @@ class BuyItem(_MakeTrade):
 
     Executing this command costs command fuel as given by .cost.
     """
+
     max_price: Price
 
 
@@ -54,6 +55,7 @@ class SellItem(_MakeTrade):
 
     Executing this command costs command fuel as given by .cost.
     """
+
     min_price: Price
 
 
@@ -66,6 +68,7 @@ class Work(Command):
 
     Executing this command costs command fuel as given by .cost.
     """
+
     amount: Amount
 
     @property

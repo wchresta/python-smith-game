@@ -16,21 +16,8 @@ _canonical_items = (
 )
 _canonical_world = engine.make_world(_canonical_items)
 
-# Decorator to register a function/class to the canonical world
-def register_agent(name: str) -> Callable[[AgentFunc], AgentFunc]:
-    def registrar(func: AgentFunc) -> AgentFunc:
-        _logger.debug("Loading agent %s - %s", name, func)
-        _canonical_world.register_agent(func, name)
-        return func
-
-    return registrar
-
-
-def register_agent_class(cls):
-    _logger.debug("Loading agent class %s", cls.__name__)
-    agent = cls()
-    _canonical_world.register_agent(agent, cls.__name__)
-    return cls
-
+register_agent = _canonical_world.register_agent
+register_agent_class = _canonical_world.register_agent_class
+register_agent_func = _canonical_world.register_agent_func
 
 simulate = _canonical_world.simulate
