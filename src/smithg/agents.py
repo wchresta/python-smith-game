@@ -15,7 +15,7 @@ from smithg.datatypes import Item, Amount, BuyOffer, SellOffer, commands, events
 _logger = logging.getLogger(__name__)
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(slots=True, frozen=True)  # type: ignore
 class Environment:
     """
     Represent the environment the agent runs in.

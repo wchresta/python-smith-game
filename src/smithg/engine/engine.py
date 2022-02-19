@@ -10,7 +10,7 @@ from smithg.engine import market as engine_market
 _logger = logging.getLogger(__name__)
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(slots=True, frozen=True)  # type: ignore
 class AgentContainer:
     @dataclass
     class State:
@@ -121,7 +121,7 @@ def execute_agent(cont: AgentContainer, world: World) -> None:
     )
 
     _logger.debug("Calling agent with events: %s", cont.events_queue)
-    queued_commands = cont.agent_func(env, cont.events_queue)
+    queued_commands = cont.agent_func(env, cont.events_queue)  # type: ignore # https://github.com/python/mypy/issues/5485
     _logger.debug("Agent finished and is executing commands %s", queued_commands)
 
     if not isinstance(queued_commands, list):
