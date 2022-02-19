@@ -148,3 +148,30 @@ class Agent:
         self, env: Environment, events: list[events.Event]
     ) -> list[commands.Command]:
         return self.run(env, events)
+
+
+@dataclass
+class Registry:
+    agents: list[tuple[AgentFunc, str]] = field(default_factory=list)
+
+    def register_agent(self, func: AgentFunc, name: str = None) -> None:
+        if not name:
+            name = func.__name__
+        self.agents.append((func, name))
+
+    def register_agent_func(self, name: str = None) -> Callable[[AgentFunc], AgentFunc]:
+        def registrar(func: AgentFunc) -> AgentFunc:
+            _logger.debug("Loading agent %s - %s", name, func)
+            self.register_agent(func, name)
+            return func
+
+        return registrar
+
+    def register_agent_class(self, cls):
+        _logger.debug("Loading agent class %s", cls.__name__)
+        agent = cls()
+        self.register_agent(agent, cls.__name__)
+        return cls
+
+
+global_agent_registry = Registry()

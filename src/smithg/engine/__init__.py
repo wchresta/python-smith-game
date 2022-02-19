@@ -2,22 +2,20 @@ from typing import Callable
 import logging
 import functools
 
-from smithg.agents import AgentFunc
+from smithg.agents import global_agent_registry
 from . import engine
 
 _logger = logging.getLogger(__name__)
 
-_canonical_items = (
-    "iron_ore",
-    "iron_ingot",
-    "iron_sword",
-    "iron_sheets",
-    "iron_hammer",
-)
-_canonical_world = engine.make_world(_canonical_items)
 
-register_agent = _canonical_world.register_agent
-register_agent_class = _canonical_world.register_agent_class
-register_agent_func = _canonical_world.register_agent_func
+def simulate() -> list[engine.AgentContainer]:
+    canonical_items = (
+        "iron_ore",
+        "iron_ingot",
+        "iron_sword",
+        "iron_sheets",
+        "iron_hammer",
+    )
 
-simulate = _canonical_world.simulate
+    world = engine.make_world(canonical_items)
+    return world.simulate()

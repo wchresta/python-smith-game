@@ -3,7 +3,7 @@ from typing import Iterable, Callable
 import logging
 import collections
 
-from smithg.agents import AgentFunc, Environment
+from smithg.agents import AgentFunc, Environment, Registry, global_agent_registry
 from smithg.datatypes import Item, Amount, BuyOffer, SellOffer, events, commands
 from smithg.engine import market as engine_market
 
@@ -42,7 +42,11 @@ class World:
     command_fuel_init: Amount = 100
     command_fuel_increase: Amount = 25
 
-    def register_agent(self, agent_func: AgentFunc, name: str = None) -> None:
+    def add_agents_from_registry(self, registry: Registry) -> None:
+        for agent_func, name in registry.agents:
+            self.add_agent(agent_func, name)
+
+    def add_agent(self, agent_func: AgentFunc, name: str = None) -> None:
         if not name:
             name = agent_func.__name__
 
@@ -60,7 +64,7 @@ class World:
         )
 
     # Simulate a run with the given number of steps
-    def simulate(self, steps=10) -> list[AgentContainer]:
+    def simulate(self, steps=1000) -> list[AgentContainer]:
         for s in range(steps):
             self.step(s)
 
@@ -75,23 +79,11 @@ class World:
         for cont in self.player_agent_containers:
             execute_agent(cont, self)
 
-    def register_agent_func(self, name: str) -> Callable[[AgentFunc], AgentFunc]:
-        def registrar(func: AgentFunc) -> AgentFunc:
-            _logger.debug("Loading agent %s - %s", name, func)
-            self.register_agent(func, name)
-            return func
-
-        return registrar
-
-    def register_agent_class(self, cls):
-        _logger.debug("Loading agent class %s", cls.__name__)
-        agent = cls()
-        self.register_agent(agent, cls.__name__)
-        return cls
-
 
 def make_world(
-    known_items: Iterable[str], player_agents: Iterable[tuple[AgentFunc, str]] = None
+    known_items: Iterable[str],
+    player_agents: Iterable[tuple[AgentFunc, str]] = None,
+    agent_registry: Registry = global_agent_registry,
 ) -> World:
     if not player_agents:
         player_agents = []
@@ -103,8 +95,10 @@ def make_world(
         ),
     )
 
+    world.add_agents_from_registry(agent_registry)
+
     for agent, name in player_agents:
-        world.register_agent(agent, name)
+        world.add_agent(agent, name)
 
     return world
 

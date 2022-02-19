@@ -17,14 +17,14 @@ def discover_agents(agents_package: str) -> None:
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     agents_path = "player_agents"
     _logger.info("Loading agents from %s", agents_path)
     discover_agents(agents_path)
     _logger.info("Loading done.")
 
-    _logger.info("Running market...")
+    _logger.info("Running simulation...")
     agent_container = smithg.engine.simulate()
 
     _logger.info("Simulation finished. Here are the results")

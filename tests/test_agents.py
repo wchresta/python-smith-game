@@ -7,6 +7,8 @@ def test_base_agent_class():
         def process_step(self) -> None:
             pass
 
+    registry = smithg.agents.Registry()
+
     world = TestWorld(
         known_items=["item"],
         balance_init=100,
@@ -15,10 +17,12 @@ def test_base_agent_class():
         command_fuel_increase=25,
     )
 
-    @world.register_agent_class
+    @registry.register_agent_class
     class TestAgent(smithg.Agent):
         def process(self, env: smithg.Environment) -> None:
             self.safe_queue_command(env, smithg.commands.Work(amount=10))
+
+    world.add_agents_from_registry(registry)
 
     world.step(0)
 

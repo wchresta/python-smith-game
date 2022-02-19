@@ -34,7 +34,7 @@ def test_engine_should_create_correct_environment():
         command_fuel_init=100,
         command_fuel_increase=25,
     )
-    world.register_agent(test_agent)
+    world.add_agent(test_agent)
 
     world.step(0)
 
