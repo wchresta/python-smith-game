@@ -13,6 +13,7 @@ _logger = logging.getLogger(__name__)
 
 
 def discover_agents(agents_package: str) -> None:
+    _logger.debug("Discovering agents in %s", agents_package)
     for agentfile in pathlib.Path(agents_package).glob("*.py"):
         module_name = f"{agents_package}.{agentfile.stem}"
         _logger.debug("Importing %s", module_name)
@@ -65,6 +66,19 @@ def parse_args(argv=None) -> argparse.Namespace:
         default="text",
     )
 
+    parser.add_argument(
+        "--builtin-agents",
+        action="store_true",
+        help="Load builtin agents",
+        default=True,
+    )
+    parser.add_argument(
+        "-d",
+        "--agents-dir",
+        help="Read agents files from the given directory",
+        default="player_agents",
+    )
+
     args = parser.parse_args(args=argv)
     args.log_level -= 10 * args.verbose  # Every 10 reduces log-level by one
 
@@ -77,7 +91,10 @@ def main(argv=None):
 
     agents_path = "player_agents"
     _logger.info("Loading agents from %s", agents_path)
-    discover_agents(agents_path)
+
+    if args.builtin_agents:
+        import smithg.agents.examples
+    discover_agents(args.agents_dir)
     _logger.info("Loading done.")
 
     _logger.info("Running simulation...")

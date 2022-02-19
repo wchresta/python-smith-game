@@ -13,8 +13,13 @@ To test run the simulation for the first time, run the following command.
 $ python src/smithg/cli.py
 ```
 
+or when you installed the package, you can also use
+```bash
+$ smithg
+```
+
 This does the following:
-* Read all agents from the `player_agents/` folder. It includes a RandomAgent.
+* Read all agents from the `smithg.agents.examples` module. It includes a RandomAgent.
 * Instantiate a world, and simulate it for a number of steps.
 * When simulation finishes, print the results.
 
@@ -22,14 +27,16 @@ Winner is whichever agent has the most money at the end of the simulation.
 
 ## How to implement your own agent
 
-Add a file in the `player_agents/` directory. You can register your agents
-using the `smithg.register_agent` or `smithg.register_agent_class` decorators.
-See the `random_agent.py` file for an example.
+Add a python script in the `player_agents/` directory in your current folder.
+You can register your agents using the `smithg.register_agent_func` or
+`smithg.register_agent_class` decorators. See the examples in
+`smithg.agents.examples`. You can change the folder name by providing the
+`--agents_dir` flag.
 
 An agent is a callable of the form:
 
 ```python
-smithg.Environment, list[smithg.events.Event] -> list[smithg.commands.Command]
+smithg.Environment, smithg.EventList -> smithg.CommmandList
 ```
 
 The environment contains information about the environment (duh!) and the agent
