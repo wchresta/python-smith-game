@@ -71,7 +71,7 @@ class World:
         return self.player_agent_containers
 
     def process_step(self) -> None:
-        self.market.trades = engine_market.gen_random_trade_offers(self.known_items)
+        self.market.tick()
 
     def step(self, s: int) -> None:
         self.process_step()
@@ -88,11 +88,10 @@ def make_world(
     if not player_agents:
         player_agents = []
 
+    known_items = list(known_items)
     world = World(
-        known_items=list(known_items),
-        market=engine_market.Market(
-            trades=engine_market.gen_random_trade_offers(known_items)
-        ),
+        known_items=known_items,
+        market=engine_market.RandomMarket(known_items=known_items),
     )
 
     world.add_agents_from_registry(agent_registry)
