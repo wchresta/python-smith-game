@@ -10,7 +10,7 @@ Download the project (we do not offer a Python package at the moment).
 To test run the simulation for the first time, run the following command.
 
 ```bash
-$ python src/smithg/cli.py
+$ python smithg/cli.py
 ```
 
 or when you installed the package, you can also use
