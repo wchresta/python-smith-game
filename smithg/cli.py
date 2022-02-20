@@ -5,6 +5,7 @@ import sys
 from typing import NamedTuple
 import logging
 
+import smithg
 import smithg.engine
 import smithg.agents
 
@@ -66,18 +67,11 @@ def parse_args(argv=None) -> argparse.Namespace:
         default="text",
     )
 
-    parser.add_argument(
-        "--builtin-agents",
-        action="store_true",
-        help="Load builtin agents",
-        default=True,
-    )
-    parser.add_argument(
-        "-d",
-        "--agents-dir",
-        help="Read agents files from the given directory",
-        default="player_agents",
-    )
+    builtin_agents = parser.add_mutually_exclusive_group(required=False)
+    builtin_agents.add_argument("--no-builtin-agents", dest="builtin_agents", action="store_false", help="Do not load builtin agents")
+    builtin_agents.add_argument("--builtin-agents", dest="builtin_agents", action="store_true", help="Load builtin agents")
+    builtin_agents.set_defaults(builtin_agents=True)
+    parser.add_argument("-d", "--agents-dir", help="Read agents files from the given directory", default="player_agents")
 
     args = parser.parse_args(args=argv)
     args.log_level -= 10 * args.verbose  # Every 10 reduces log-level by one
@@ -93,7 +87,7 @@ def main(argv=None):
     _logger.info("Loading agents from %s", agents_path)
 
     if args.builtin_agents:
-        import smithg.agents.examples
+        importlib.import_module("smithg.agents.examples")
     discover_agents(args.agents_dir)
     _logger.info("Loading done.")
 
