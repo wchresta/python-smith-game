@@ -10,7 +10,7 @@ Download the project (we do not offer a Python package at the moment).
 To test run the simulation for the first time, run the following command.
 
 ```bash
-$ python smithg/cli.py
+$ python .
 ```
 
 or when you installed the package, you can also use
@@ -24,6 +24,25 @@ This does the following:
 * When simulation finishes, print the results.
 
 Winner is whichever agent has the most money at the end of the simulation.
+
+You can modify the behaviour of the simulation:
+
+```
+$ smithg --help
+usage: smithg [-h] [--log-level LOG_LEVEL | -v] [-f {text,json,csv}] [--builtin-agents] [-d AGENTS_DIR]
+
+Run smith-game simulations.
+
+options:
+  -h, --help            show this help message and exit
+  --log-level LOG_LEVEL
+  -v, --verbose
+  -f {text,json,csv}, --format {text,json,csv}
+                        Output format
+  --builtin-agents      Load builtin agents
+  -d AGENTS_DIR, --agents-dir AGENTS_DIR
+                        Read agents files from the given directory
+```
 
 ## How to implement your own agent
 
